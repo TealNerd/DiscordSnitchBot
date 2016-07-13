@@ -48,7 +48,7 @@ var rl = readline.createInterface({
 });
 
 function print_help() {
-  console.log("usage: node client_chat.js <hostname> <port> <user> <password> <token> <server-id> <channel-name> [<mcversion>]");
+  console.log("usage: node discord_snitch_bot.js <hostname> <port> <user> <password> <token> <server-id> <channel-name> [<mcversion>]");
 }
 
 if(process.argv.length < 8) {
@@ -109,9 +109,11 @@ var players = [];
 discordBot.on('message', function(message) {
   if(message.channel.isPrivate) {
 	if(message.content == 'playerlist') {
+	  var playerMessage = "The following players are online:\n";
 	  players.forEach(function(player) {
-		discordBot.sendMessage(message.channel, player);
+		playerMessage += player + "\n";
 	  });
+	  discordBot.sendMessage(message.channel, playerMessage);
 	}
   }
 });
@@ -135,7 +137,7 @@ client.on('player_info', function(packet) {
 
 client.on('kick_disconnect', function(packet) {
   console.info(color('Kicked for ' + packet.reason, "blink+red"));
-  process.exit(1);
+  reconnect();
 });
 
 var chats = [];
@@ -149,12 +151,16 @@ client.on('connect', function() {
 
 client.on('disconnect', function(packet) {
   console.log('disconnected: '+ packet.reason);
+  reconnect();
+});
+
+function reconnect() {
   connected = false;
   while(!connected) {
 	sleep(12600);
 	client.connect(host, port);
   }
-});
+}
 
 function sleep (time) {
   var now = new Date().getTime();
@@ -211,7 +217,9 @@ function sendSnitchMessage(message) {
 }
 
 function getFormattedDate() {
-	return "[" + dateFormat("m/dd/yy h:M TT") + "]";
+	var now = new Date();
+	var utc = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),  now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
+	return "[" + dateFormat(utc, "m/dd/yy h:MM TT") + "]";
 }
 
 var re = /^ \* ([a-zA-Z0-9_]+) (entered|logged out in|logged in to) snitch at (.*?)\[(world.*?) ([-]?[0-9]+) ([-]?[0-9]+) ([-]?[0-9]+)\]$/;
